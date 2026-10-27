@@ -1,1087 +1,400 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TeamMatch Pro - Chia Đội Bóng Cân Bằng Điểm Số</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Font Inter & Outfit -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- html2canvas for exporting PNG -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
-                    },
-                    colors: {
-                        pitch: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1e293b;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chia Đội Bóng Cân Bằng Trực Tuyến</title>
+  <!-- Tailwind CSS & Font Awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2canvas xuất ảnh -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+<body class="bg-slate-900 text-slate-100 min-h-screen py-8 px-4 font-sans">
+  <div class="max-w-5xl mx-auto space-y-6">
+    
+    <!-- Header -->
+    <header class="text-center space-y-2">
+      <div class="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="syncStatus">Đang kết nối Cloud...</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+        ⚽ CHIA ĐỘI BÓNG ĐÁ TRỰC TUYẾN
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400">Dữ liệu đồng bộ trực tiếp — Bất kỳ ai vào link cũng thấy và sửa được</p>
+    </header>
 
-    <!-- Toast Notification Message Box -->
-    <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md border border-white/10 text-sm font-medium">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-        <span id="toast-msg">Thông báo</span>
-    </div>
-
-    <!-- Main Wrapper -->
-    <div class="max-w-7xl mx-auto px-4 py-6 md:py-10">
-        
-        <!-- Header Section -->
-        <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-8 border-b border-slate-800 gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 text-2xl">
-                    <i class="fa-solid fa-futbol"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-display font-extrabold tracking-tight text-white flex items-center gap-2">
-                        TeamMatch <span class="text-emerald-400">Pro</span>
-                    </h1>
-                    <p class="text-xs md:text-sm text-slate-400">Chia đội bóng đá thông minh & cân bằng theo thang điểm 1 - 5 ⭐</p>
-                </div>
+    <!-- Khu vực nhập liệu & danh sách -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Cột trái: Thêm cầu thủ -->
+      <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 space-y-4">
+        <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus"></i> Thêm Cầu Thủ Mới
+        </h2>
+        <div class="space-y-3 text-sm">
+          <div>
+            <label class="block text-slate-400 mb-1">Tên cầu thủ:</label>
+            <input id="playerName" type="text" placeholder="VD: Văn Toàn, Tuấn..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-slate-400">Điểm đánh giá (1 - 5 ⭐):</label>
+              <span id="scoreVal" class="text-emerald-400 font-bold">3.0 ⭐</span>
             </div>
+            <input id="playerScore" type="range" min="1" max="5" step="0.5" value="3.0" class="w-full accent-emerald-500 cursor-pointer">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Vị trí sở trường:</label>
+            <select id="playerPos" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+              <option value="MF">Tiền vệ (MF)</option>
+              <option value="FW">Tiền đạo (FW)</option>
+              <option value="DF">Hậu vệ (DF)</option>
+              <option value="GK">Thủ môn (GK)</option>
+            </select>
+          </div>
+          <button id="btnAdd" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-2 shadow">
+            <i class="fa-solid fa-plus"></i> Thêm Vào Danh Sách
+          </button>
+        </div>
+      </div>
 
-            <div class="flex items-center gap-2.5 flex-wrap">
-                <button id="btn-load-sample" class="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-2 border border-slate-700">
-                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Dữ liệu mẫu (14 người)
-                </button>
-                <button id="btn-clear-all" class="px-3 py-2 text-xs font-semibold rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 transition flex items-center gap-2 border border-red-800/40">
-                    <i class="fa-regular fa-trash-can"></i> Xoá hết
-                </button>
+      <!-- Cột giữa & phải: Danh sách cầu thủ -->
+      <div class="lg:col-span-2 bg-slate-800/80 p-5 rounded-2xl border border-slate-700 space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700 pb-3">
+            <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-users"></i> Danh Sách Thi Đấu (<span id="playerCount" class="text-emerald-400">0</span>)
+            </h2>
+            <div class="flex gap-2">
+              <button id="btnCheckAll" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-200">Chọn tất cả</button>
+              <button id="btnClearAll" class="text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 px-3 py-1.5 rounded-lg">Xóa hết</button>
             </div>
-        </header>
-
-        <!-- Main Content 2 Columns Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-            <!-- LEFT COLUMN: Player Input & Management (5 cols) -->
-            <div class="lg:col-span-5 space-y-6">
-
-                <!-- Card 1: Add Player -->
-                <div class="bg-slate-800/80 backdrop-blur border border-slate-700/80 rounded-2xl p-5 shadow-xl">
-                    <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus text-emerald-400"></i> Thêm Cầu Thủ
-                    </h2>
-
-                    <form id="form-add-player" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Tên cầu thủ</label>
-                            <input type="text" id="player-name" required placeholder="Nhập họ tên hoặc nickname..."
-                                class="w-full px-3.5 py-2.5 text-sm bg-slate-900/90 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-white placeholder-slate-500 outline-none transition">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <label class="text-xs font-semibold text-slate-300">Trình độ (1 - 5 ⭐)</label>
-                                    <span id="rating-badge" class="text-xs font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">3.0 ⭐</span>
-                                </div>
-                                <input type="range" id="player-rating" min="1" max="5" step="0.5" value="3.0"
-                                    class="w-full accent-emerald-500 h-2 bg-slate-700 rounded-lg cursor-pointer">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Vị trí</label>
-                                <select id="player-pos"
-                                    class="w-full px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 text-white outline-none transition cursor-pointer">
-                                    <option value="FW">⚽ Tiền đạo (FW)</option>
-                                    <option value="MF" selected>🎯 Tiền vệ (MF)</option>
-                                    <option value="DF">🛡️ Hậu vệ (DF)</option>
-                                    <option value="GK">🧤 Thủ môn (GK)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2 pt-1">
-                            <button type="submit"
-                                class="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30">
-                                <i class="fa-solid fa-plus"></i> Thêm vào danh sách
-                            </button>
-                            <button type="button" id="btn-toggle-bulk"
-                                class="px-3.5 py-2.5 bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-xl transition border border-slate-600"
-                                title="Nhập danh sách nhiều người">
-                                <i class="fa-solid fa-list-check"></i>
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Bulk Import Panel (Collapsible) -->
-                    <div id="bulk-import-panel" class="hidden mt-4 pt-4 border-t border-slate-700/80 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-200">Dán danh sách (mỗi dòng 1 người)</span>
-                            <span class="text-[11px] text-slate-400">Định dạng: Tên, Điểm (1-5), Vị trí</span>
-                        </div>
-                        <textarea id="bulk-input" rows="4" placeholder="Ví dụ:
-Quang Hải, 4.5, MF
-Tiến Linh, 4.0, FW
-Đặng Văn Lâm, 4.5, GK
-Duy Mạnh, 3.5, DF"
-                            class="w-full p-3 text-xs bg-slate-950 font-mono text-emerald-300 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition custom-scrollbar"></textarea>
-                        <div class="flex gap-2">
-                            <button id="btn-bulk-save" class="flex-1 py-2 bg-emerald-600/80 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition">
-                                Nạp danh sách
-                            </button>
-                            <button id="btn-bulk-cancel" class="px-3 py-2 bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-600 transition">
-                                Hủy
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Card 2: Player List Container -->
-                <div class="bg-slate-800/80 backdrop-blur border border-slate-700/80 rounded-2xl p-5 shadow-xl">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 class="text-base font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-users text-teal-400"></i> Danh Sách Cầu Thủ
-                            </h2>
-                            <p class="text-xs text-slate-400">
-                                Đang chọn tham gia: <span id="count-present" class="font-bold text-emerald-400">0</span> / <span id="count-total" class="font-bold">0</span>
-                            </p>
-                        </div>
-                        <button id="btn-toggle-all-presence" class="text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-600 transition">
-                            Chọn tất cả
-                        </button>
-                    </div>
-
-                    <!-- Scrollable list of players -->
-                    <div id="player-list" class="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- RIGHT COLUMN: Settings & Division Results (7 cols) -->
-            <div class="lg:col-span-7 space-y-6">
-
-                <!-- Card 3: Match Division Controls -->
-                <div class="bg-slate-800/80 backdrop-blur border border-slate-700/80 rounded-2xl p-5 shadow-xl">
-                    <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-emerald-400"></i> Cấu Hình Chia Đội
-                    </h2>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                        <!-- Select Number of Teams -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-2">Số lượng đội bóng</label>
-                            <div class="grid grid-cols-3 gap-2" id="team-count-group">
-                                <button type="button" data-teams="2" class="btn-team-count py-2 text-xs font-bold rounded-xl border border-emerald-500 bg-emerald-600 text-white shadow transition">
-                                    2 Đội
-                                </button>
-                                <button type="button" data-teams="3" class="btn-team-count py-2 text-xs font-bold rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-700 transition">
-                                    3 Đội
-                                </button>
-                                <button type="button" data-teams="4" class="btn-team-count py-2 text-xs font-bold rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-700 transition">
-                                    4 Đội
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Division Strategy -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-2">Chế độ phân chia</label>
-                            <select id="division-mode"
-                                class="w-full px-3 py-2 text-xs font-semibold bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 transition">
-                                <option value="balanced_random">🎲 Ngẫu nhiên có cân bằng (Khuyên dùng)</option>
-                                <option value="strict_balanced">⚖️ Cân bằng điểm số tối đa (Strict)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-700/60 mb-5">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
-                                <i class="fa-solid fa-hand"></i>
-                            </div>
-                            <span class="text-xs font-medium text-slate-300">Phân bổ đều Thủ môn (GK) cho các đội</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="check-distribute-gk" checked class="sr-only peer">
-                            <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                        </label>
-                    </div>
-
-                    <!-- Action Trigger -->
-                    <button id="btn-divide-teams"
-                        class="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:opacity-95 text-white font-extrabold text-base rounded-xl transition duration-200 flex items-center justify-center gap-3 shadow-xl shadow-emerald-700/30 transform active:scale-[0.99]">
-                        <i class="fa-solid fa-shuffle text-lg"></i>
-                        <span>BẮT ĐẦU CHIA ĐỘI NGAY</span>
-                    </button>
-                </div>
-
-                <!-- Card 4: Results Display -->
-                <div id="results-card" class="bg-slate-800/80 backdrop-blur border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-700/80 gap-3">
-                        <div>
-                            <h2 class="text-base font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-trophy text-amber-400"></i> Đội Hình Thi Đấu
-                            </h2>
-                            <div id="balance-indicator" class="flex items-center gap-2 mt-1 hidden">
-                                <span class="text-xs text-slate-400">Chênh lệch điểm cao nhất:</span>
-                                <span id="rating-diff-val" class="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-700 text-white">0.0</span>
-                                <span id="balance-badge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full"></span>
-                            </div>
-                        </div>
-
-                        <!-- Action Toolbar for Results -->
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <button id="btn-reroll" class="px-3 py-1.5 text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-1.5 border border-slate-600">
-                                <i class="fa-solid fa-rotate-right"></i> Chia lại
-                            </button>
-                            <button id="btn-download-image" class="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
-                                <i class="fa-solid fa-image"></i> Tải ảnh (PNG)
-                            </button>
-                            <button id="btn-copy-result" class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
-                                <i class="fa-regular fa-copy"></i> Sao chép chữ
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Teams Container -->
-                    <div id="capture-container" class="rounded-2xl p-1 bg-transparent">
-                        <div id="teams-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Injected dynamically via JS -->
-                        </div>
-                    </div>
-
-                    <!-- Empty State Placeholder -->
-                    <div id="result-placeholder" class="py-12 flex flex-col items-center justify-center text-center text-slate-500">
-                        <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/80 flex items-center justify-center text-3xl mb-3 text-slate-600">
-                            <i class="fa-solid fa-users-viewfinder"></i>
-                        </div>
-                        <p class="text-sm font-semibold text-slate-400">Chưa có kết quả chia đội</p>
-                        <p class="text-xs text-slate-500 max-w-xs mt-1">Chọn tối thiểu 2 cầu thủ và bấm "Bắt đầu chia đội ngay" để thuật toán tính toán tự động.</p>
-                    </div>
-                </div>
-
-            </div>
+          </div>
+          
+          <!-- Bảng cuộn danh sách -->
+          <div class="overflow-y-auto max-h-72 mt-3 space-y-2 pr-1" id="playerList">
+            <!-- Danh sách render tự động -->
+          </div>
         </div>
 
-        <footer class="mt-12 text-center text-xs text-slate-500 border-t border-slate-800/80 pt-6">
-            <p>TeamMatch Pro &bull; Công cụ hỗ trợ bóng đá phủi, sân 5, 7, 11 người &bull; Cân bằng & Công bằng</p>
-        </footer>
+        <!-- Cấu hình chia đội -->
+        <div class="pt-4 border-t border-slate-700 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div class="flex items-center gap-2">
+              <label class="text-slate-300">Chia làm:</label>
+              <select id="teamCount" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white">
+                <option value="2">2 Đội (Đối kháng)</option>
+                <option value="3">3 Đội (Xoay tua)</option>
+                <option value="4">4 Đội (Giải mini)</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+              <input id="splitGK" type="checkbox" checked class="accent-emerald-500 w-4 h-4">
+              <span>Chia đều Thủ môn (GK)</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button id="btnSplit" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+              <i class="fa-solid fa-shuffle"></i> BẮT ĐẦU CHIA ĐỘI
+            </button>
+            <button id="btnExportImg" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera"></i> TẢI ẢNH KẾT QUẢ (PNG)
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- MAIN JAVASCRIPT LOGIC -->
-    <script>
-        // Sample Players Data (Scale 1 to 5)
-        const SAMPLE_PLAYERS = [
-            { id: "p1", name: "Quang Hải", rating: 4.5, pos: "MF", present: true },
-            { id: "p2", name: "Hoàng Đức", rating: 4.5, pos: "MF", present: true },
-            { id: "p3", name: "Tiến Linh", rating: 4.0, pos: "FW", present: true },
-            { id: "p4", name: "Tuấn Hải", rating: 4.0, pos: "FW", present: true },
-            { id: "p5", name: "Văn Hậu", rating: 4.0, pos: "DF", present: true },
-            { id: "p6", name: "Quế Ngọc Hải", rating: 4.0, pos: "DF", present: true },
-            { id: "p7", name: "Duy Mạnh", rating: 3.5, pos: "DF", present: true },
-            { id: "p8", name: "Văn Thanh", rating: 3.5, pos: "DF", present: true },
-            { id: "p9", name: "Hùng Dũng", rating: 4.0, pos: "MF", present: true },
-            { id: "p10", name: "Tuấn Anh", rating: 3.5, pos: "MF", present: true },
-            { id: "p11", name: "Đặng Văn Lâm", rating: 4.5, pos: "GK", present: true },
-            { id: "p12", name: "Filip Nguyễn", rating: 4.5, pos: "GK", present: true },
-            { id: "p13", name: "Đình Bắc", rating: 3.5, pos: "FW", present: true },
-            { id: "p14", name: "Thành Chung", rating: 3.5, pos: "DF", present: true }
-        ];
+    <!-- Khu vực hiển thị kết quả -->
+    <div id="resultContainer" class="hidden bg-slate-800/90 p-5 rounded-2xl border border-slate-700 space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-trophy text-amber-400"></i> Kết Quả Chia Đội
+          </h3>
+          <p id="diffRating" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button id="btnCopyText" class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+          <i class="fa-solid fa-copy"></i> Copy gửi Zalo
+        </button>
+      </div>
 
-        // Position metadata
-        const POSITION_CONFIG = {
-            "FW": { label: "Tiền đạo", badge: "bg-red-500/20 text-red-300 border-red-500/30" },
-            "MF": { label: "Tiền vệ", badge: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-            "DF": { label: "Hậu vệ", badge: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-            "GK": { label: "Thủ môn", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" }
-        };
+      <!-- Danh sách card các đội (Được chụp ra ảnh PNG) -->
+      <div id="teamsExportArea" class="p-4 bg-slate-950 rounded-xl border border-slate-800">
+        <div class="text-center pb-3 border-b border-slate-800 mb-4">
+          <h4 class="text-emerald-400 font-extrabold text-lg">⚽ ĐỘI HÌNH THI ĐẤU HÔM NAY</h4>
+          <p class="text-slate-500 text-xs" id="matchTime"></p>
+        </div>
+        <div id="teamsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Render các đội -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // Team Theme Palettes
-        const TEAM_THEMES = [
-            {
-                name: "Đội Xanh Lam",
-                headerBg: "bg-gradient-to-r from-blue-700 to-indigo-600",
-                badgeBg: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-                cardBorder: "border-blue-600/30",
-                hexColor: "#2563eb"
-            },
-            {
-                name: "Đội Đỏ Cam",
-                headerBg: "bg-gradient-to-r from-red-600 to-rose-600",
-                badgeBg: "bg-red-500/20 text-red-300 border-red-500/30",
-                cardBorder: "border-red-600/30",
-                hexColor: "#dc2626"
-            },
-            {
-                name: "Đội Xanh Lá",
-                headerBg: "bg-gradient-to-r from-emerald-600 to-teal-600",
-                badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-                cardBorder: "border-emerald-600/30",
-                hexColor: "#059669"
-            },
-            {
-                name: "Đội Tím Vàng",
-                headerBg: "bg-gradient-to-r from-purple-700 to-fuchsia-600",
-                badgeBg: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-                cardBorder: "border-purple-600/30",
-                hexColor: "#7c3aed"
-            }
-        ];
+  <script>
+    // ==========================================
+    // 1. CẤU HÌNH FIREBASE REALTIME CỦA BẠN
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4xMEGFeempcb4PpEj2-Gx68okH_hOq0A",
+      authDomain: "chia-doi.firebaseapp.com",
+      databaseURL: "https://chia-doi-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "chia-doi",
+      storageBucket: "chia-doi.firebasestorage.app",
+      messagingSenderId: "376431137461",
+      appId: "1:376431137461:web:ad3933fef357224ad524fc"
+    };
 
-        // Application State
-        let state = {
-            players: [],
-            teamCount: 2,
-            teamsResult: []
-        };
+    // Khởi tạo Firebase
+    let db = null;
+    let playersRef = null;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      playersRef = db.ref('match_data/players');
+      document.getElementById('syncStatus').innerText = 'Cloud: Đồng bộ trực tuyến';
+    } catch (e) {
+      console.error(e);
+      document.getElementById('syncStatus').innerText = 'Lỗi kết nối Firebase';
+    }
 
-        // DOM Elements
-        const formAddPlayer = document.getElementById('form-add-player');
-        const inputName = document.getElementById('player-name');
-        const rangeRating = document.getElementById('player-rating');
-        const ratingBadge = document.getElementById('rating-badge');
-        const selectPos = document.getElementById('player-pos');
-        const btnToggleBulk = document.getElementById('btn-toggle-bulk');
-        const bulkPanel = document.getElementById('bulk-import-panel');
-        const bulkInput = document.getElementById('bulk-input');
-        const btnBulkSave = document.getElementById('btn-bulk-save');
-        const btnBulkCancel = document.getElementById('btn-bulk-cancel');
-        const playerListContainer = document.getElementById('player-list');
-        const countPresent = document.getElementById('count-present');
-        const countTotal = document.getElementById('count-total');
-        const btnToggleAllPresence = document.getElementById('btn-toggle-all-presence');
-        const btnLoadSample = document.getElementById('btn-load-sample');
-        const btnClearAll = document.getElementById('btn-clear-all');
-        const teamCountButtons = document.querySelectorAll('.btn-team-count');
-        const selectDivisionMode = document.getElementById('division-mode');
-        const checkDistributeGK = document.getElementById('check-distribute-gk');
-        const btnDivideTeams = document.getElementById('btn-divide-teams');
-        const btnReroll = document.getElementById('btn-reroll');
-        const btnCopyResult = document.getElementById('btn-copy-result');
-        const btnDownloadImage = document.getElementById('btn-download-image');
-        const teamsGrid = document.getElementById('teams-grid');
-        const resultPlaceholder = document.getElementById('result-placeholder');
-        const balanceIndicator = document.getElementById('balance-indicator');
-        const ratingDiffValue = document.getElementById('rating-diff-val');
-        const balanceBadge = document.getElementById('balance-badge');
-        const toast = document.getElementById('toast');
-        const toastMsg = document.getElementById('toast-msg');
-        const toastIcon = document.getElementById('toast-icon');
+    let players = [];
 
-        let toastTimer = null;
-
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromStorage();
-            if (state.players.length === 0) {
-                state.players = JSON.parse(JSON.stringify(SAMPLE_PLAYERS));
-            }
-            setupEventListeners();
-            renderPlayerList();
-        });
-
-        // Toast Notification System
-        function showToast(msg, type = 'success') {
-            if (toastTimer) clearTimeout(toastTimer);
-            toastMsg.textContent = msg;
-
-            if (type === 'success') {
-                toast.className = "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-0 opacity-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-slate-800/95 border border-emerald-500/40 text-sm font-medium text-white";
-                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
-            } else if (type === 'error') {
-                toast.className = "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-0 opacity-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-slate-800/95 border border-rose-500/40 text-sm font-medium text-white";
-                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400 text-lg";
-            } else {
-                toast.className = "fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-0 opacity-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-slate-800/95 border border-blue-500/40 text-sm font-medium text-white";
-                toastIcon.className = "fa-solid fa-circle-info text-blue-400 text-lg";
-            }
-
-            toastTimer = setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-[-100px]', 'opacity-0');
-            }, 3000);
+    // Lắng nghe dữ liệu thay đổi từ Firebase Realtime
+    if (playersRef) {
+      playersRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          players = Array.isArray(data) ? data : Object.values(data);
+        } else {
+          players = [];
         }
-
-        // LocalStorage Helpers
-        function saveToStorage() {
-            try {
-                localStorage.setItem('teammatch_players_v2', JSON.stringify(state.players));
-            } catch (e) {
-                console.error("Storage error:", e);
-            }
-        }
-
-        function loadFromStorage() {
-            try {
-                const saved = localStorage.getItem('teammatch_players_v2');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed)) {
-                        // Normalize ratings to 1 - 5 range
-                        state.players = parsed.map(p => {
-                            let r = Number(p.rating) || 3.0;
-                            if (r > 5) r = Math.round((r / 2) * 2) / 2;
-                            r = Math.max(1, Math.min(5, r));
-                            return { ...p, rating: r };
-                        });
-                    }
-                }
-            } catch (e) {
-                console.error("Load error:", e);
-            }
-        }
-
-        // Setup Event Listeners
-        function setupEventListeners() {
-            // Slider rating badge update
-            rangeRating.addEventListener('input', (e) => {
-                ratingBadge.textContent = `${parseFloat(e.target.value).toFixed(1)} ⭐`;
-            });
-
-            // Add player form
-            formAddPlayer.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = inputName.value.trim();
-                let rating = parseFloat(rangeRating.value);
-                rating = Math.max(1, Math.min(5, rating));
-                const pos = selectPos.value;
-
-                if (!name) return;
-
-                state.players.unshift({
-                    id: 'p_' + Date.now() + Math.random().toString(36).substring(2, 6),
-                    name,
-                    rating,
-                    pos,
-                    present: true
-                });
-
-                inputName.value = '';
-                saveToStorage();
-                renderPlayerList();
-                showToast(`Đã thêm cầu thủ "${name}" (${rating.toFixed(1)} ⭐)`);
-            });
-
-            // Bulk import toggling
-            btnToggleBulk.addEventListener('click', () => {
-                bulkPanel.classList.toggle('hidden');
-                if (!bulkPanel.classList.contains('hidden')) {
-                    bulkInput.focus();
-                }
-            });
-
-            btnBulkCancel.addEventListener('click', () => {
-                bulkPanel.classList.add('hidden');
-                bulkInput.value = '';
-            });
-
-            btnBulkSave.addEventListener('click', () => {
-                const text = bulkInput.value.trim();
-                if (!text) return;
-
-                const lines = text.split('\n');
-                let countAdded = 0;
-
-                lines.forEach(line => {
-                    const parts = line.split(/[,;\t]/).map(p => p.trim()).filter(Boolean);
-                    if (parts.length > 0 && parts[0]) {
-                        const name = parts[0];
-                        let rating = 3.0;
-                        let pos = "MF";
-
-                        if (parts.length >= 2) {
-                            let parsedRating = parseFloat(parts[1]);
-                            if (!isNaN(parsedRating)) {
-                                if (parsedRating > 5 && parsedRating <= 10) {
-                                    parsedRating = Math.round((parsedRating / 2) * 2) / 2;
-                                }
-                                rating = Math.min(Math.max(parsedRating, 1), 5);
-                            }
-                        }
-
-                        if (parts.length >= 3) {
-                            const pUpper = parts[2].toUpperCase();
-                            if (["FW", "MF", "DF", "GK"].includes(pUpper)) {
-                                pos = pUpper;
-                            } else if (pUpper.includes("THỦ") || pUpper.includes("TM")) {
-                                pos = "GK";
-                            } else if (pUpper.includes("HẬU") || pUpper.includes("HV")) {
-                                pos = "DF";
-                            } else if (pUpper.includes("TIỀN ĐẠO") || pUpper.includes("TĐ")) {
-                                pos = "FW";
-                            }
-                        }
-
-                        state.players.push({
-                            id: 'p_' + Date.now() + Math.random().toString(36).substring(2, 6),
-                            name,
-                            rating,
-                            pos,
-                            present: true
-                        });
-                        countAdded++;
-                    }
-                });
-
-                if (countAdded > 0) {
-                    saveToStorage();
-                    renderPlayerList();
-                    bulkInput.value = '';
-                    bulkPanel.classList.add('hidden');
-                    showToast(`Đã nạp thành công ${countAdded} cầu thủ!`);
-                } else {
-                    showToast("Không tìm thấy dòng dữ liệu hợp lệ!", "error");
-                }
-            });
-
-            // Toggle all attendance
-            btnToggleAllPresence.addEventListener('click', () => {
-                const anyUnchecked = state.players.some(p => !p.present);
-                state.players.forEach(p => p.present = anyUnchecked);
-                saveToStorage();
-                renderPlayerList();
-                showToast(anyUnchecked ? "Đã chọn tất cả cầu thủ!" : "Đã bỏ chọn tất cả!");
-            });
-
-            // Sample data load
-            btnLoadSample.addEventListener('click', () => {
-                state.players = JSON.parse(JSON.stringify(SAMPLE_PLAYERS));
-                saveToStorage();
-                renderPlayerList();
-                showToast("Đã nạp 14 cầu thủ mẫu (thang điểm 1-5 ⭐)!");
-            });
-
-            // Clear all players
-            btnClearAll.addEventListener('click', () => {
-                if (state.players.length === 0) return;
-                state.players = [];
-                state.teamsResult = [];
-                saveToStorage();
-                renderPlayerList();
-                renderTeams();
-                showToast("Đã xóa sạch danh sách cầu thủ!");
-            });
-
-            // Team count button selector
-            teamCountButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const count = parseInt(btn.getAttribute('data-teams'), 10);
-                    state.teamCount = count;
-                    updateTeamCountUI();
-                });
-            });
-
-            // Run divide teams
-            btnDivideTeams.addEventListener('click', () => {
-                divideTeamsLogic();
-            });
-
-            // Reroll teams
-            btnReroll.addEventListener('click', () => {
-                divideTeamsLogic();
-                showToast("Đã xáo trộn và chia lại đội hình!");
-            });
-
-            // Copy to clipboard
-            btnCopyResult.addEventListener('click', () => {
-                copyResultToClipboard();
-            });
-
-            // Download PNG Image
-            btnDownloadImage.addEventListener('click', () => {
-                exportTeamsToImage();
-            });
-        }
-
-        // Update active status of team count button group
-        function updateTeamCountUI() {
-            teamCountButtons.forEach(b => {
-                const count = parseInt(b.getAttribute('data-teams'), 10);
-                if (count === state.teamCount) {
-                    b.className = "btn-team-count py-2 text-xs font-bold rounded-xl border border-emerald-500 bg-emerald-600 text-white shadow transition";
-                } else {
-                    b.className = "btn-team-count py-2 text-xs font-bold rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-700 transition";
-                }
-            });
-        }
-
-        // Render Player List
-        function renderPlayerList() {
-            playerListContainer.innerHTML = '';
-
-            const total = state.players.length;
-            const presentCount = state.players.filter(p => p.present).length;
-
-            countTotal.textContent = total;
-            countPresent.textContent = presentCount;
-
-            if (total === 0) {
-                playerListContainer.innerHTML = `
-                    <div class="py-8 text-center text-slate-500">
-                        <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-600"></i>
-                        <p class="text-xs">Chưa có cầu thủ nào trong danh sách.</p>
-                        <p class="text-[11px] text-slate-600 mt-0.5">Bấm "Dữ liệu mẫu" ở góc trên để trải nghiệm thử.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            state.players.forEach(p => {
-                const posMeta = POSITION_CONFIG[p.pos] || { label: p.pos, badge: 'bg-slate-700 text-slate-300' };
-
-                const item = document.createElement('div');
-                item.className = `flex items-center justify-between p-2.5 rounded-xl border transition ${
-                    p.present 
-                        ? 'bg-slate-900/90 border-slate-700 hover:border-slate-600' 
-                        : 'bg-slate-900/30 border-slate-800/60 opacity-50'
-                }`;
-
-                item.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0">
-                        <input type="checkbox" data-id="${p.id}" class="check-player-present w-4 h-4 rounded text-emerald-500 focus:ring-0 bg-slate-800 border-slate-600 cursor-pointer" ${p.present ? 'checked' : ''}>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="font-semibold text-xs text-white truncate">${escapeHtml(p.name)}</span>
-                                <span class="text-[10px] font-bold px-1.5 py-0.2 rounded border ${posMeta.badge}">
-                                    ${p.pos}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <!-- Quick Rating Adjuster (1 to 5) -->
-                        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg overflow-hidden text-xs">
-                            <button type="button" data-id="${p.id}" data-delta="-0.5" class="btn-change-rating px-2 py-0.5 hover:bg-slate-700 text-slate-300 font-bold transition">
-                                -
-                            </button>
-                            <span class="px-1.5 font-bold text-emerald-400 text-xs w-10 text-center">${p.rating.toFixed(1)}⭐</span>
-                            <button type="button" data-id="${p.id}" data-delta="0.5" class="btn-change-rating px-2 py-0.5 hover:bg-slate-700 text-slate-300 font-bold transition">
-                                +
-                            </button>
-                        </div>
-
-                        <!-- Delete single player -->
-                        <button type="button" data-id="${p.id}" class="btn-delete-player text-slate-500 hover:text-red-400 p-1 rounded-md transition text-xs" title="Xóa">
-                            <i class="fa-solid fa-xmark text-sm"></i>
-                        </button>
-                    </div>
-                `;
-
-                playerListContainer.appendChild(item);
-            });
-
-            // Event delegation
-            playerListContainer.querySelectorAll('.check-player-present').forEach(chk => {
-                chk.addEventListener('change', () => {
-                    const id = chk.getAttribute('data-id');
-                    const target = state.players.find(p => p.id === id);
-                    if (target) {
-                        target.present = chk.checked;
-                        saveToStorage();
-                        renderPlayerList();
-                    }
-                });
-            });
-
-            playerListContainer.querySelectorAll('.btn-change-rating').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.getAttribute('data-id');
-                    const delta = parseFloat(btn.getAttribute('data-delta'));
-                    const target = state.players.find(p => p.id === id);
-                    if (target) {
-                        let newRating = Math.round((target.rating + delta) * 10) / 10;
-                        newRating = Math.max(1, Math.min(5, newRating));
-                        target.rating = newRating;
-                        saveToStorage();
-                        renderPlayerList();
-                    }
-                });
-            });
-
-            playerListContainer.querySelectorAll('.btn-delete-player').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.getAttribute('data-id');
-                    state.players = state.players.filter(p => p.id !== id);
-                    saveToStorage();
-                    renderPlayerList();
-                });
-            });
-        }
-
-        // Team Division Algorithm
-        function divideTeamsLogic() {
-            const available = state.players.filter(p => p.present);
-            const numTeams = state.teamCount;
-
-            if (available.length < numTeams) {
-                showToast(`Cần ít nhất ${numTeams} cầu thủ có mặt để chia làm ${numTeams} đội!`, "error");
-                return;
-            }
-
-            const distributeGK = checkDistributeGK.checked;
-            const mode = selectDivisionMode.value;
-
-            let bestPartition = null;
-            let bestDiff = Infinity;
-
-            const iterations = (mode === 'strict_balanced') ? 400 : 80;
-
-            for (let iter = 0; iter < iterations; iter++) {
-                let teams = [];
-                for (let i = 0; i < numTeams; i++) {
-                    teams.push({
-                        id: i + 1,
-                        name: TEAM_THEMES[i % TEAM_THEMES.length].name,
-                        players: [],
-                        totalRating: 0
-                    });
-                }
-
-                let pool = JSON.parse(JSON.stringify(available));
-
-                // 1. Distribute GK evenly first if enabled
-                if (distributeGK) {
-                    let gks = pool.filter(p => p.pos === 'GK');
-                    pool = pool.filter(p => p.pos !== 'GK');
-
-                    // Shuffle GKs slightly
-                    gks.sort(() => Math.random() - 0.5);
-
-                    gks.forEach((gk) => {
-                        teams.sort((a, b) => {
-                            const aGK = a.players.filter(p => p.pos === 'GK').length;
-                            const bGK = b.players.filter(p => p.pos === 'GK').length;
-                            if (aGK !== bGK) return aGK - bGK;
-                            return a.totalRating - b.totalRating;
-                        });
-                        teams[0].players.push(gk);
-                        teams[0].totalRating += gk.rating;
-                    });
-                }
-
-                // 2. Sort remaining players by rating descending
-                pool.sort((a, b) => b.rating - a.rating);
-
-                // Add slight randomness in iterations for variety
-                if (mode === 'balanced_random' && iter > 0) {
-                    for (let i = 0; i < pool.length - 1; i++) {
-                        if (Math.abs(pool[i].rating - pool[i + 1].rating) <= 0.5 && Math.random() > 0.5) {
-                            let temp = pool[i];
-                            pool[i] = pool[i + 1];
-                            pool[i + 1] = temp;
-                        }
-                    }
-                }
-
-                // 3. Assign players prioritizing balanced head-count and minimal total rating
-                pool.forEach(player => {
-                    const minPlayers = Math.min(...teams.map(t => t.players.length));
-                    const candidateTeams = teams.filter(t => t.players.length === minPlayers);
-
-                    candidateTeams.sort((a, b) => a.totalRating - b.totalRating);
-                    const chosen = candidateTeams[0];
-
-                    chosen.players.push(player);
-                    chosen.totalRating += player.rating;
-                });
-
-                // Calculate current difference
-                const totals = teams.map(t => t.totalRating);
-                const diff = Math.max(...totals) - Math.min(...totals);
-
-                if (diff < bestDiff) {
-                    bestDiff = diff;
-                    bestPartition = JSON.parse(JSON.stringify(teams));
-                    if (diff === 0) break;
-                }
-            }
-
-            state.teamsResult = bestPartition;
-            renderTeams();
-            showToast("Đã chia đội thành công với tỷ lệ cân bằng tối ưu!");
-        }
-
-        // Render Generated Teams
-        function renderTeams() {
-            if (!state.teamsResult || state.teamsResult.length === 0) {
-                resultPlaceholder.classList.remove('hidden');
-                teamsGrid.innerHTML = '';
-                balanceIndicator.classList.add('hidden');
-                return;
-            }
-
-            resultPlaceholder.classList.add('hidden');
-            balanceIndicator.classList.remove('hidden');
-            teamsGrid.innerHTML = '';
-
-            const totals = state.teamsResult.map(t => t.totalRating);
-            const maxVal = Math.max(...totals);
-            const minVal = Math.min(...totals);
-            const diff = Math.round((maxVal - minVal) * 10) / 10;
-
-            ratingDiffValue.textContent = diff.toFixed(1);
-            if (diff <= 0.5) {
-                balanceBadge.textContent = "Cực kỳ cân bằng";
-                balanceBadge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300";
-            } else if (diff <= 1.5) {
-                balanceBadge.textContent = "Khá cân bằng";
-                balanceBadge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300";
-            } else {
-                balanceBadge.textContent = "Chênh lệch nhẹ";
-                balanceBadge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300";
-            }
-
-            state.teamsResult.forEach((team, tIdx) => {
-                const theme = TEAM_THEMES[tIdx % TEAM_THEMES.length];
-                const avgRating = team.players.length > 0 ? (team.totalRating / team.players.length).toFixed(1) : "0.0";
-
-                const card = document.createElement('div');
-                card.className = `rounded-2xl border ${theme.cardBorder} bg-slate-900/90 overflow-hidden shadow-lg flex flex-col`;
-
-                card.innerHTML = `
-                    <!-- Team Card Header -->
-                    <div class="${theme.headerBg} p-3.5 text-white flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-shirt text-sm opacity-80"></i>
-                            <input type="text" value="${escapeHtml(team.name)}" 
-                                class="team-name-input bg-black/20 hover:bg-black/30 text-white font-bold text-sm px-2 py-0.5 rounded outline-none border border-transparent focus:border-white/40 transition w-36">
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs font-bold uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-md">
-                                ${team.players.length} người
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Stats Bar -->
-                    <div class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex justify-between items-center text-xs text-slate-300">
-                        <span>Tổng điểm: <strong class="text-emerald-400 text-sm">${team.totalRating.toFixed(1)}</strong></span>
-                        <span>Trung bình: <strong class="text-amber-300">${avgRating} ⭐</strong></span>
-                    </div>
-
-                    <!-- Players in this Team -->
-                    <div class="p-3 space-y-1.5 flex-1 overflow-y-auto max-h-[300px] custom-scrollbar">
-                        ${team.players.map((p, pIdx) => {
-                            const posMeta = POSITION_CONFIG[p.pos] || { badge: 'bg-slate-700 text-slate-300' };
-                            return `
-                                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition text-xs border border-slate-700/40">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="text-slate-500 font-mono text-[11px] w-4">${pIdx + 1}.</span>
-                                        <span class="font-bold text-slate-200 truncate">${escapeHtml(p.name)}</span>
-                                        <span class="text-[10px] px-1.5 py-0.2 rounded border font-semibold ${posMeta.badge}">${p.pos}</span>
-                                    </div>
-                                    <span class="font-bold text-slate-300 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-700">${p.rating.toFixed(1)} ⭐</span>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-
-                const nameInput = card.querySelector('.team-name-input');
-                nameInput.addEventListener('change', (e) => {
-                    team.name = e.target.value.trim() || `Đội ${tIdx + 1}`;
-                });
-
-                teamsGrid.appendChild(card);
-            });
-        }
-
-        // Copy plain text format for Zalo/FB
-        function copyResultToClipboard() {
-            if (!state.teamsResult || state.teamsResult.length === 0) {
-                showToast("Chưa có kết quả để sao chép!", "error");
-                return;
-            }
-
-            let text = `⚽ KẾT QUẢ CHIA ĐỘI BÓNG ĐÁ ⚽\n`;
-            text += `Ngày: ${new Date().toLocaleDateString('vi-VN')}\n`;
-            text += `------------------------------------\n\n`;
-
-            state.teamsResult.forEach((team) => {
-                const avg = team.players.length > 0 ? (team.totalRating / team.players.length).toFixed(1) : 0;
-                text += `🏆 ${team.name.toUpperCase()} (${team.players.length} người | Tổng: ${team.totalRating.toFixed(1)}đ | TB: ${avg}⭐)\n`;
-                team.players.forEach((p, idx) => {
-                    text += `  ${idx + 1}. ${p.name} (${p.pos} - ${p.rating.toFixed(1)}⭐)\n`;
-                });
-                text += `\n`;
-            });
-
-            const totals = state.teamsResult.map(t => t.totalRating);
-            const diff = (Math.max(...totals) - Math.min(...totals)).toFixed(1);
-            text += `⚡ Chênh lệch tổng điểm: ${diff} điểm\n`;
-            text += `Chúc anh em thi đấu vui vẻ, đoàn kết!`;
-
-            fallbackCopyText(text);
-        }
-
-        function fallbackCopyText(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showToast("Đã sao chép kết quả gửi Zalo/FB!");
-                } else {
-                    showToast("Không thể sao chép kết quả", "error");
-                }
-            } catch (err) {
-                console.error('Copy fallback error:', err);
-                showToast("Lỗi khi sao chép!", "error");
-            }
-            document.body.removeChild(textArea);
-        }
-
-        // Export Teams to PNG Image
-        function exportTeamsToImage() {
-            if (!state.teamsResult || state.teamsResult.length === 0) {
-                showToast("Chưa có kết quả chia đội để xuất ảnh!", "error");
-                return;
-            }
-
-            showToast("Đang tạo ảnh chất lượng cao...", "info");
-
-            const dateStr = new Date().toLocaleDateString('vi-VN', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'numeric', 
-                day: 'numeric' 
-            });
-
-            const totals = state.teamsResult.map(t => t.totalRating);
-            const diff = (Math.max(...totals) - Math.min(...totals)).toFixed(1);
-
-            // Container for image generation
-            const exportWrapper = document.createElement('div');
-            exportWrapper.style.position = 'fixed';
-            exportWrapper.style.left = '-9999px';
-            exportWrapper.style.top = '0';
-            exportWrapper.style.width = '780px';
-            exportWrapper.style.padding = '28px';
-            exportWrapper.style.background = '#090d16';
-            exportWrapper.style.color = '#f8fafc';
-            exportWrapper.style.borderRadius = '20px';
-            exportWrapper.style.fontFamily = "'Inter', sans-serif";
-
-            let teamsCardsHtml = '';
-            state.teamsResult.forEach((team, tIdx) => {
-                const theme = TEAM_THEMES[tIdx % TEAM_THEMES.length];
-                const avgRating = team.players.length > 0 ? (team.totalRating / team.players.length).toFixed(1) : "0.0";
-
-                let playersHtml = team.players.map((p, idx) => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 7px 10px; background: rgba(30, 41, 59, 0.7); margin-bottom: 6px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="display:flex; align-items:center; gap: 8px;">
-                            <span style="color: #64748b; font-size: 11px; width: 16px;">${idx + 1}.</span>
-                            <span style="font-weight: 600; color: #f1f5f9;">${escapeHtml(p.name)}</span>
-                            <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: #cbd5e1;">${p.pos}</span>
-                        </div>
-                        <span style="font-weight: 700; color: #34d399; font-size: 12px;">${p.rating.toFixed(1)} ⭐</span>
-                    </div>
-                `).join('');
-
-                teamsCardsHtml += `
-                    <div style="flex: 1; min-width: 320px; background: #0f172a; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
-                        <div style="background: ${theme.hexColor}; padding: 12px 16px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 800; font-size: 15px;">⚽ ${escapeHtml(team.name)}</div>
-                            <div style="font-size: 11px; font-weight: 700; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 6px;">${team.players.length} CẦU THỦ</div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 8px 16px; background: #1e293b; font-size: 12px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <span>Tổng điểm: <strong style="color: #34d399; font-size: 13px;">${team.totalRating.toFixed(1)}</strong></span>
-                            <span>Trung bình: <strong style="color: #fcd34d;">${avgRating} ⭐</strong></span>
-                        </div>
-                        <div style="padding: 12px;">
-                            ${playersHtml}
-                        </div>
-                    </div>
-                `;
-            });
-
-            exportWrapper.innerHTML = `
-                <div style="text-align: center; margin-bottom: 22px;">
-                    <div style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">⚽ BẢNG CHIA ĐỘI THI ĐẤU</div>
-                    <div style="font-size: 13px; color: #94a3b8; margin-top: 5px;">
-                        ${dateStr} &bull; Chênh lệch: <strong style="color: #4ade80;">${diff} điểm</strong>
-                    </div>
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 14px;">
-                    ${teamsCardsHtml}
-                </div>
-                <div style="text-align: center; margin-top: 18px; font-size: 11px; color: #64748b;">
-                    Được chia tự động bởi TeamMatch Pro &bull; Chúc các đội thi đấu gắn kết và fair-play!
-                </div>
-            `;
-
-            document.body.appendChild(exportWrapper);
-
-            html2canvas(exportWrapper, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#090d16'
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const downloadLink = document.createElement('a');
-                downloadLink.download = `Chia-Doi-Bong-Da-${Date.now()}.png`;
-                downloadLink.href = imgData;
-                downloadLink.click();
-                document.body.removeChild(exportWrapper);
-                showToast("Đã tải ảnh PNG thành công!");
-            }).catch(err => {
-                console.error("Lỗi tạo ảnh:", err);
-                if (document.body.contains(exportWrapper)) {
-                    document.body.removeChild(exportWrapper);
-                }
-                showToast("Không thể tạo ảnh, vui lòng thử lại!", "error");
-            });
-        }
-
-        function escapeHtml(string) {
-            const div = document.createElement('div');
-            div.textContent = string;
-            return div.innerHTML;
-        }
-    </script>
+        renderPlayerList();
+      });
+    }
+
+    // Hàm lưu danh sách lên Firebase
+    function saveToCloud() {
+      if (playersRef) {
+        playersRef.set(players);
+      }
+    }
+
+    // Cập nhật giá trị slider
+    const playerScore = document.getElementById('playerScore');
+    const scoreVal = document.getElementById('scoreVal');
+    playerScore.addEventListener('input', (e) => {
+      scoreVal.innerText = parseFloat(e.target.value).toFixed(1) + ' ⭐';
+    });
+
+    // Thêm cầu thủ
+    document.getElementById('btnAdd').addEventListener('click', () => {
+      const nameInput = document.getElementById('playerName');
+      const name = nameInput.value.trim();
+      if (!name) return alert('Vui lòng nhập tên cầu thủ!');
+
+      const newPlayer = {
+        id: Date.now().toString(),
+        name: name,
+        score: parseFloat(playerScore.value),
+        pos: document.getElementById('playerPos').value,
+        active: true
+      };
+
+      players.push(newPlayer);
+      saveToCloud();
+      nameInput.value = '';
+    });
+
+    // Render danh sách cầu thủ
+    function renderPlayerList() {
+      const container = document.getElementById('playerList');
+      container.innerHTML = '';
+      document.getElementById('playerCount').innerText = players.length;
+
+      if (players.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-6 text-sm">Chưa có ai trong danh sách. Hãy thêm cầu thủ!</p>';
+        return;
+      }
+
+      players.forEach((p, idx) => {
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-2.5 rounded-xl border text-sm transition ${
+          p.active ? 'bg-slate-900/90 border-slate-700' : 'bg-slate-900/40 border-slate-800 opacity-50'
+        }`;
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <input type="checkbox" ${p.active ? 'checked' : ''} onchange="togglePlayer(${idx})" class="w-4 h-4 accent-emerald-500 cursor-pointer">
+            <span class="px-2 py-0.5 text-xs font-bold rounded ${getPosBadge(p.pos)}">${p.pos}</span>
+            <span class="font-medium text-slate-200">${p.name}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg">
+              <button onclick="changeScore(${idx}, -0.5)" class="text-slate-400 hover:text-white px-1">-</button>
+              <span class="text-amber-400 font-bold text-xs">${p.score.toFixed(1)}⭐</span>
+              <button onclick="changeScore(${idx}, 0.5)" class="text-slate-400 hover:text-white px-1">+</button>
+            </div>
+            <button onclick="deletePlayer(${idx})" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function getPosBadge(pos) {
+      if (pos === 'GK') return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+      if (pos === 'DF') return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+      if (pos === 'MF') return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      return 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+    }
+
+    window.togglePlayer = (idx) => {
+      players[idx].active = !players[idx].active;
+      saveToCloud();
+    };
+
+    window.changeScore = (idx, delta) => {
+      let ns = Math.round((players[idx].score + delta) * 10) / 10;
+      if (ns >= 1 && ns <= 5) {
+        players[idx].score = ns;
+        saveToCloud();
+      }
+    };
+
+    window.deletePlayer = (idx) => {
+      players.splice(idx, 1);
+      saveToCloud();
+    };
+
+    document.getElementById('btnCheckAll').addEventListener('click', () => {
+      const allActive = players.every(p => p.active);
+      players.forEach(p => p.active = !allActive);
+      saveToCloud();
+    });
+
+    document.getElementById('btnClearAll').addEventListener('click', () => {
+      if (confirm('Bạn có chắc chắn muốn xóa toàn bộ danh sách?')) {
+        players = [];
+        saveToCloud();
+      }
+    });
+
+    // ==========================================
+    // 2. THUẬT TOÁN CHIA ĐỘI CÂN BẰNG
+    // ==========================================
+    let currentTeams = [];
+
+    document.getElementById('btnSplit').addEventListener('click', () => {
+      const activeList = players.filter(p => p.active);
+      const k = parseInt(document.getElementById('teamCount').value);
+      const splitGK = document.getElementById('splitGK').checked;
+
+      if (activeList.length < k) {
+        return alert(`Cần ít nhất ${k} người có mặt để chia làm ${k} đội!`);
+      }
+
+      let gks = [];
+      let nonGks = [];
+
+      if (splitGK) {
+        gks = activeList.filter(p => p.pos === 'GK').sort(() => Math.random() - 0.5);
+        nonGks = activeList.filter(p => p.pos !== 'GK').sort(() => Math.random() - 0.5);
+      } else {
+        nonGks = [...activeList].sort(() => Math.random() - 0.5);
+      }
+
+      let teams = Array.from({ length: k }, (_, i) => ({
+        id: i + 1,
+        name: `Đội ${String.fromCharCode(65 + i)}`,
+        players: [],
+        totalScore: 0
+      }));
+
+      // Chia thủ môn trước
+      gks.forEach(p => {
+        teams.sort((a, b) => a.players.length - b.players.length || a.totalScore - b.totalScore);
+        teams[0].players.push(p);
+        teams[0].totalScore += p.score;
+      });
+
+      // Sắp xếp các vị trí còn lại kèm xáo trộn ngẫu nhiên
+      nonGks.sort((a, b) => b.score - a.score + (Math.random() * 0.4 - 0.2));
+
+      nonGks.forEach(p => {
+        teams.sort((a, b) => a.players.length - b.players.length || a.totalScore - b.totalScore);
+        teams[0].players.push(p);
+        teams[0].totalScore += p.score;
+      });
+
+      currentTeams = teams;
+      renderTeamsResult();
+    });
+
+    function renderTeamsResult() {
+      const container = document.getElementById('teamsGrid');
+      container.innerHTML = '';
+      document.getElementById('resultContainer').classList.remove('hidden');
+
+      const scores = currentTeams.map(t => t.totalScore);
+      const diff = Math.max(...scores) - Math.min(...scores);
+      document.getElementById('diffRating').innerText = `Chênh lệch: ${diff.toFixed(1)} điểm — ${diff <= 0.5 ? '🔥 Rất cân bằng' : '👍 Ổn định'}`;
+      document.getElementById('matchTime').innerText = `Ngày chia: ${new Date().toLocaleDateString('vi-VN')} lúc ${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}`;
+
+      const colors = ['border-emerald-500 bg-emerald-500/10', 'border-blue-500 bg-blue-500/10', 'border-amber-500 bg-amber-500/10', 'border-rose-500 bg-rose-500/10'];
+
+      currentTeams.forEach((team, i) => {
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl border-2 ${colors[i % colors.length]} space-y-3`;
+        
+        let pListHtml = team.players.map(p => `
+          <div class="flex justify-between items-center text-xs py-1 border-b border-slate-800">
+            <span class="text-slate-300 font-medium">${p.name} <span class="text-slate-500">(${p.pos})</span></span>
+            <span class="text-amber-400 font-bold">${p.score.toFixed(1)}⭐</span>
+          </div>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+            <h5 class="font-extrabold text-base text-white">${team.name}</h5>
+            <span class="text-xs bg-slate-800 px-2 py-0.5 rounded text-emerald-400 font-bold">${team.players.length} người | ${team.totalScore.toFixed(1)}đ</span>
+          </div>
+          <div class="space-y-1">${pListHtml}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Tải ảnh PNG chất lượng cao
+    document.getElementById('btnExportImg').addEventListener('click', () => {
+      const target = document.getElementById('teamsExportArea');
+      if (currentTeams.length === 0) return alert('Vui lòng chia đội trước khi xuất ảnh!');
+
+      html2canvas(target, { scale: 2, backgroundColor: '#020617' }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `ket-qua-chia-doi-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    });
+
+    // Copy text gửi Zalo
+    document.getElementById('btnCopyText').addEventListener('click', () => {
+      if (currentTeams.length === 0) return;
+      let text = `⚽ KẾT QUẢ CHIA ĐỘI HÔM NAY ⚽\n`;
+      currentTeams.forEach(t => {
+        text += `\n📌 ${t.name} (${t.players.length} người - ${t.totalScore.toFixed(1)}đ):\n`;
+        t.players.forEach(p => text += `- ${p.name} (${p.pos} - ${p.score}⭐)\n`);
+      });
+      navigator.clipboard.writeText(text).then(() => alert('Đã sao chép nội dung gửi Zalo!'));
+    });
+  </script>
 </body>
 </html>
